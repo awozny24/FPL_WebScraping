@@ -31,10 +31,6 @@ length=len(data.columns)
 webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
 
 
-def TestFunction():
-    print("Hello, World!")
-    
-
 #### Helper Functions
 # Initialize Browser
 def InitializeBrowser(start_url, webDriverPath):
@@ -92,19 +88,31 @@ def GetNumRecords(browser):
     
     
     
+# This function opens the specified files.
+# filenameResult: Output files of the results. Each row has a permit id and the most recently completed inspection
+# filenameSuccess: Output file of the raw results. Each row has a permit id and the result of each relevant inspection.
+# overwrite_csv: Specifies whether to overwrite the csv when opening it.    
 def OpenFiles(filenameResult="PermitStatus", filenameSuccess=None, overwrite_csv=False):
 
     if (filenameSuccess == None):
         keepRawInspectionStatus = False
     else:
         keepRawInspectionStatus = True
+        if (".csv" not in filenameSuccess):
+            filenameSuccess = filenameSuccess + ".csv"
 
-    if (overwrite_csv):
+    if ".csv" not in filenameResult:
+        filenameResult = filenameResult + ".csv"
+
+
+    createNewFile = not Path("./" + filenameResult).is_file()
+
+    if (overwrite_csv | createNewFile):
         # open files to write; overwrites
-        fileResult = open("./"+ filenameResult +".csv", mode='w')
+        fileResult = open("./"+ filenameResult, mode='w')
 
         # create csv writer for data
-        writerResult  = csv.writer(fileResult)
+        writerResult = csv.writer(fileResult)
 
         # add column names
         row = ["ID"]
@@ -112,7 +120,7 @@ def OpenFiles(filenameResult="PermitStatus", filenameSuccess=None, overwrite_csv
         writerResult.writerow(row)
         
         if (keepRawInspectionStatus):
-            fileSuccess = open("./"+ filenameSuccess +".csv", mode='w')
+            fileSuccess = open("./"+ filenameSuccess, mode='w')
             row = ["ID"]
             row = row + relevant_inspections
             writerSuccess = csv.writer(fileSuccess)
@@ -121,15 +129,16 @@ def OpenFiles(filenameResult="PermitStatus", filenameSuccess=None, overwrite_csv
     # open files in append mode    
     else:
         # open files to write to using; does not overwrite, just appends
-        fileResult = open("./"+ filenameResult +".csv", mode='a')
+        fileResult = open("./"+ filenameResult, mode='a')
 
         # create csv writer for data
         writerResult  = csv.writer(fileResult)
         if (keepRawInspectionStatus):
-            fileSuccess = open("./" + filenameSuccess + ".csv", mode='a')
+            fileSuccess = open("./" + filenameSuccess, mode='a')
             writerSuccess = csv.writer(fileSuccess)
     
     
+    # return the files and writers for the user
     if (keepRawInspectionStatus):
         files = [fileResult, fileSuccess]
         writers = [writerResult, writerSuccess]
@@ -140,7 +149,7 @@ def OpenFiles(filenameResult="PermitStatus", filenameSuccess=None, overwrite_csv
         return files, writers    
 
 
-    
+# Close the specified files that were opened during scraping
 def CloseFiles(files):
     # make sure the files is in list format
     if type(files) is not list:
@@ -151,7 +160,8 @@ def CloseFiles(files):
         f.close()
     
     
-    
+# Takes inspections scraped from the page and determines which inspections passed and which did not.
+# Returns a row starting with the permit id and then 'Y' (Yes) or 'N' (No) for whether an inspection passed or not.
 def GetInspectionStatus(status, inspections, permit_number, relevant_inspections):
     # put status and permit into a pandas dataframe
     data = {"status":status, "inspections": inspections}
@@ -178,6 +188,8 @@ def GetInspectionStatus(status, inspections, permit_number, relevant_inspections
     return row   
 
 
+# Finds the most recent inspection
+# Takes in the "row" from GetInspectionStatus(...) and determines the most recent 'Y' (completed inspection)
 def GetMostRecentInspection(row, permit_number, relevant_inspections):
 
     rowResult = [permit_number]
@@ -197,10 +209,11 @@ def GetMostRecentInspection(row, permit_number, relevant_inspections):
     return rowResult
 
 
-### Determine the permits that did not get recorded and write to a specified file
+# Determines the permits that did not get recorded and written to a specified file
+# Returns a list of permits that are not in the file
 def GetUnusedPermits(filename, permit_list_use):
 
-    # get the permits that were recorded
+    # get the permits that were recorded from the csv
     if ".csv" in filename:
         recordedPermits = pd.read_csv("./" + filename)
     else:
@@ -227,6 +240,7 @@ def GetUnusedPermits(filename, permit_list_use):
 ### Functions for Iteracting with the Webpage
 # This function accesses the search box on the pages and searches for
 # a given permit ID
+# Returns True for success and False for failure
 def SearchForPermit(browser, permit_number, quit_count=10):
     # enter permit id into search box
     searchbox = browser.find_element(by=By.ID, value="txtSearchCondition")
@@ -250,10 +264,9 @@ def ClickSearchButton(browser):
     permitSearchBtn.click()
     
     
-    
-    
 
 # This function goes to the inspections page/tab
+# Returns True for success and False for failure
 def GoToInspections(browser, permit_number, quit_count, first_call=True):
         
     # initialize try iteration
@@ -273,7 +286,8 @@ def GoToInspections(browser, permit_number, quit_count, first_call=True):
         else: 
             return False
         
-    
+
+# Goes to the inspections tab on the page
 def GoToInspectionsHelper(browser):
     # Go to Inspections for the searched for permit ID
     RecInfoDropdown = browser.find_element(by=By.CSS_SELECTOR, value="[title^='Record Info']")
@@ -288,7 +302,9 @@ def GoToInspectionsHelper(browser):
     
     
 
-
+# This function is called when searching or a permit takes the user to an unorthodox page.
+# (Only called a few times)
+# Clicks on the permit number when needed
 def ClickPermitNumber(browser, permit_number, quit_count):
     # initialize try iteration
     counter = 1
@@ -327,7 +343,7 @@ def ClickPermitNumberHelper(browser, extraVars):
     
 
     
-    
+# Gets the information from an inspection table
 def GetInspectionInfo(browser, permit_number, quit_count, status, inspections):
     
     # access the inspection table
@@ -351,6 +367,7 @@ def GetInspectionInfo(browser, permit_number, quit_count, status, inspections):
             successTotal = False
             
     return successTotal
+
 
 
 def GetInspectionInfoHelper(browser, extraVars):
@@ -377,7 +394,7 @@ def GetInspectionInfoHelper(browser, extraVars):
 
 
 
-
+# Function to turn the page to more of the information from the inspection table
 def TurnPage(browser, permit_number, quit_count, p, delay):
     
     # initialize counter
@@ -385,7 +402,6 @@ def TurnPage(browser, permit_number, quit_count, p, delay):
     
     # call recursive function to turn page
     return Recursive(TurnPageHelper, browser, permit_number, counter, quit_count, extraVars=[p, delay])
-    
     
     
 def TurnPageHelper(browser, extraVars):
@@ -456,15 +472,14 @@ def ScrapeData(permits, relevant_inspections, webDriverPath, overwrite_csv=False
         permits = [permits]
 
     # open files 
-    if (overwrite_csv):
-        if (keepRawInspectionStatus):
-            # open files and initialize writers; use raw data file
-            [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=overwrite_csv)
-            fileResult.close(); fileSuccess.close();
-        else:
-            # open files and initialize writers; don't use raw data file
-            [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=overwrite_csv)
-            fileResult.close();
+    if (keepRawInspectionStatus):
+        # open files and initialize writers; use raw data file
+        [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=False)
+        fileResult.close(); fileSuccess.close();
+    else:
+        # open files and initialize writers; don't use raw data file
+        [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=False)
+        fileResult.close();
 
     # go to start url
     start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'    
@@ -613,20 +628,33 @@ def ScrapeData(permits, relevant_inspections, webDriverPath, overwrite_csv=False
             CloseFiles([fileResult])
                 
 
-                
-def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20, numRetryPermit=5): 
+# Main function to call
+# permit_use: list of integer permits to scrape data on; can also insert a single value
+# relevant_inspections: list of relevant inspection titles; those provided by John are "Footer", "Slab", "Wall Sheathing", "Roof Sheathing", etc.
+# overwrite_csv: specifies whether to overwrite the .csv files that result from previous runs
+# filenameResult: name of the .csv file to output the results
+# filenameSuccess: name of the .csv file to output the raw data to
+# keepRawInspectionStatus: determines whether or not to record the raw data by storing it in filenameSuccess.csv
+# numTryClick: specifies how many times that the program should try to perform a function on a web page before quitting
+# numRetryPermit: specifies how many times to retry searching for a permit if failure occurred during the intial scraping
+def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=False, numTryClick=20, numRetryPermit=5): 
     
     # open files 
-    if (overwrite_csv):
-        if (keepRawInspectionStatus):
-            # open files and initialize writers; use raw data file
-            [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=overwrite_csv)
-            fileResult.close(); fileSuccess.close();
-        else:
-            # open files and initialize writers; don't use raw data file
-            [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=overwrite_csv)
-            fileResult.close();
+    if (keepRawInspectionStatus):
+        # open files and initialize writers; use raw data file
+        [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=overwrite_csv)
+        fileResult.close(); fileSuccess.close();
+    else:
+        # open files and initialize writers; don't use raw data file
+        [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=overwrite_csv)
+        fileResult.close();
+
     
+    
+    # make sure specified filename contains .csv; otherwise add it
+    if ".csv" not in filenameResult:
+        filenameResult = filenameResult + ".csv"
+
     # get unused permits
     unused = GetUnusedPermits(filenameResult, permit_use)
 
@@ -642,8 +670,8 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
     it = 1
 
     # while there are still unused permits
-    while ((len(timesUnused) > 0) & (len(unused) > 0) & (it < numRetryPermit)):
-        
+    while ((len(timesUnused) > 0) & (len(unused) > 0) & (it <= numRetryPermit)):
+
         # on start, let user choose whether or not to overwrite the csv
         if (start == True):
             # try getting data for each permit
@@ -653,7 +681,6 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
         else:
             ScrapeData(unused, relevant_inspections, webDriverPath, False, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick)
 
-        
         # get the unused/unsuccessful permits to try to search for again
         unused = GetUnusedPermits(filenameResult, permit_use)
 
@@ -677,27 +704,8 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
             
         # increase iteration
         it = it + 1
+
+        log = open(filenameResult, "r")
+        for line in log:
+            print(line)
                 
-                
-                
-# read data
-data=pd.read_csv("./sampledata-permits.csv")
-
-# list of permits
-data_dict=data.to_dict()
-permit_list=data["PermitNumber"].to_list() #displays all permits
-length=len(data.columns)
-
-# relevant permits
-relevant_inspections = ["Footer", "Slab", "Wall Sheathing", "Roof Sheathing", 
-                    "Dry In", "Electric Rough", "Framing", "Electric Temporary Service",
-                    "Insulation"]
-
-# path to webdriver
-webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
-
-# edge case: 20210519111
-
-# scrape data
-permit_use = permit_list[120:121]
-# GetData(permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=False)
