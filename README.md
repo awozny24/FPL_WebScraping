@@ -9,7 +9,6 @@ Starts out at https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.asp
 "sampledata-permits.csv" is a sample file of many ids to run the program on.
 
 For the main function that needs to be called, GetData(...):
-  - Main function to call
   - permit_use: list of integer permits to scrape data on; can also insert a single value
   - relevant_inspections: list of relevant inspection titles; those provided by John are "Footer", "Slab", "Wall Sheathing", "Roof Sheathing", etc.
   - overwrite_csv: specifies whether to overwrite the .csv files that result from previous runs
