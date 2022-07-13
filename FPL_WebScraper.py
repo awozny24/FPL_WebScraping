@@ -31,37 +31,197 @@ length=len(data.columns)
 webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
 
 
-#### Setup
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import ElementClickInterceptedException
-from selenium.common.exceptions import StaleElementReferenceException
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import SessionNotCreatedException
-from selenium.common.exceptions import ElementNotVisibleException
-from selenium.common.exceptions import TimeoutException
-from selenium.common.exceptions import ElementNotInteractableException
+def TestFunction():
+    print("Hello, World!")
+    
 
-import csv
-import time
-from pathlib import Path
-
-import pandas as pd
+#### Helper Functions
+# Initialize Browser
+def InitializeBrowser(start_url, webDriverPath):
+    # set up web driver
+    s = Service(webDriverPath)
+    browser = webdriver.Chrome(service=s)
+    
+    # intialize browser at specified start url
+    browser.get(start_url)
+    
+    return browser
 
 
-# read data
-data=pd.read_csv("./sampledata-permits.csv")
 
-# list of permits
-data_dict=data.to_dict()
-permit_list=data["PermitNumber"].to_list() #displays all permits
-length=len(data.columns)
+# This function takes in a webElement and gets relevant information from the text
+# i.e. the permit type and its status
+def GetStatAndPermText(webElement):
+    # get the inner html code
+    innerHTML = webElement.get_attribute("innerHTML").split('">')
+    
+    # get the status and permit from the text
+    stat = innerHTML[1].split('<')[0]
+    perm = innerHTML[2].split('<')[0].split(' (')[0]
 
-# path to webdriver
-webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
+    # return the information
+    return stat, perm
+
+
+
+# This functions takes in a string of text and gets the number of inspection entries
+def GetNumRecords(browser):
+    
+    try:
+        # get string containing the number of completed inspections
+        completedText = WebDriverWait(browser, 60).until(EC.visibility_of_element_located((By.ID, "ctl00_PlaceHolderMain_InspectionList_lblInspectionCompleted"))).text
+
+        # eliminate the "Complete " and then the number of entries is next
+        completedInsp = completedText.split('Completed ')
+
+        # if there is no entry for the number of inspections, 0 are completed
+        if (len(completedInsp) == 1):
+            return 0
+
+        # get the number of entries from inside the parentheses
+        else:
+            completedInsp = completedInsp[1].split('\n')
+            numRecords = int(completedInsp[0][1:-1])
+
+            # return the number of records
+            return numRecords
+     
+    # if the inspections table does not load, say table is empty
+    except (TimeoutException, ElementNotVisibleException):
+        return -1
+    
+    
+    
+def OpenFiles(filenameResult="PermitStatus", filenameSuccess=None, overwrite_csv=False):
+
+    if (filenameSuccess == None):
+        keepRawInspectionStatus = False
+    else:
+        keepRawInspectionStatus = True
+
+    if (overwrite_csv):
+        # open files to write; overwrites
+        fileResult = open("./"+ filenameResult +".csv", mode='w')
+
+        # create csv writer for data
+        writerResult  = csv.writer(fileResult)
+
+        # add column names
+        row = ["ID"]
+        row = row + ["Most Recent"]
+        writerResult.writerow(row)
+        
+        if (keepRawInspectionStatus):
+            fileSuccess = open("./"+ filenameSuccess +".csv", mode='w')
+            row = ["ID"]
+            row = row + relevant_inspections
+            writerSuccess = csv.writer(fileSuccess)
+            writerSuccess.writerow(row)     
+            
+    # open files in append mode    
+    else:
+        # open files to write to using; does not overwrite, just appends
+        fileResult = open("./"+ filenameResult +".csv", mode='a')
+
+        # create csv writer for data
+        writerResult  = csv.writer(fileResult)
+        if (keepRawInspectionStatus):
+            fileSuccess = open("./" + filenameSuccess + ".csv", mode='a')
+            writerSuccess = csv.writer(fileSuccess)
+    
+    
+    if (keepRawInspectionStatus):
+        files = [fileResult, fileSuccess]
+        writers = [writerResult, writerSuccess]
+        return files, writers
+    else:
+        files = [fileResult]
+        writers = [writerResult]
+        return files, writers    
+
+
+    
+def CloseFiles(files):
+    # make sure the files is in list format
+    if type(files) is not list:
+        files = [files]
+    
+    # close each file
+    for f in files:
+        f.close()
+    
+    
+    
+def GetInspectionStatus(status, inspections, permit_number, relevant_inspections):
+    # put status and permit into a pandas dataframe
+    data = {"status":status, "inspections": inspections}
+    statusPanda = pd.DataFrame(data)
+
+    # determine status of permit
+    passed = statusPanda["status"] == "Pass"
+
+    # begin row to write in csv with permit number
+    row = [permit_number]
+
+    # for each relevant permit
+    for insp in relevant_inspections:
+        # check if the permit type is in the list
+        inspectionType = statusPanda["inspections"] == insp
+
+        # if the specified permit type did not pass (resulting dataframe is empty) use "N" for no
+        if (statusPanda.loc[((passed) & (inspectionType))].empty):
+            row.append("N")
+        # if the specified permit type passed use "Y" for yes
+        else:
+            row.append("Y")
+                 
+    return row   
+
+
+def GetMostRecentInspection(row, permit_number, relevant_inspections):
+
+    rowResult = [permit_number]
+
+    # get the most recent permit
+    found = False
+    for i in range(1, len(row))[::-1]:
+        if (row[i]=="Y"):
+            rowResult = rowResult + [relevant_inspections[i-1]]
+            found = True
+            break;
+
+    # if no relevant inspections have been completed
+    if (found == False):
+        rowResult = rowResult + ["None"]
+
+    return rowResult
+
+
+### Determine the permits that did not get recorded and write to a specified file
+def GetUnusedPermits(filename, permit_list_use):
+
+    # get the permits that were recorded
+    if ".csv" in filename:
+        recordedPermits = pd.read_csv("./" + filename)
+    else:
+        recordedPermits = pd.read_csv("./" + filename + ".csv")
+    recordedPermits.drop(labels=recordedPermits.columns.difference(["ID"]), axis=1, inplace=True)
+    
+    if type(permit_list_use) is not list:
+        permit_list_use = [permit_list_use]    
+
+   # get the list of permits used
+    triedPermitsList = {"permits": permit_list_use}
+    triedPermits = pd.DataFrame(triedPermitsList)
+
+    # get unused permits (due to failure)
+    unusedPermits = triedPermits.loc[~triedPermits["permits"].isin(recordedPermits["ID"])]
+    
+    # turn unused permits pandas to list
+    unusedPermits = unusedPermits["permits"].tolist()
+    
+    # return unused permits
+    return unusedPermits
 
 
 ### Functions for Iteracting with the Webpage
@@ -204,7 +364,7 @@ def GetInspectionInfoHelper(browser, extraVars):
         i = extraVars[2]
         innerHTML = inspTable[i].get_attribute("innerHTML").split('">')
     except IndexError as e:
-        print(f"\n\tIndex Error!")
+        print(f"\n\tIndex Error!", end="")
         return False
 
     # get the status and permit from the text
@@ -286,7 +446,7 @@ def Recursive(function, browser, permit_number, counter, quit_count, extraVars=N
 
 
     
-    #### Scrape Data
+#### Scrape Data
 def ScrapeData(permits, relevant_inspections, webDriverPath, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20):
     # get start time
     start_time = time.time()
@@ -365,14 +525,12 @@ def ScrapeData(permits, relevant_inspections, webDriverPath, overwrite_csv=False
                 status = list()
                 inspections = list()
 
-
                 # relative page number in html
                 p = 1
 
                 # initialize the success of turning the page and getting info as a success
                 pageTurnSuccess = True
                 getInfoSuccess = True
-                
                 
                 # for each page
                 while ((p < numPages+1) & (p < 11) & (pageTurnSuccess) & (getInfoSuccess)):
@@ -431,6 +589,7 @@ def ScrapeData(permits, relevant_inspections, webDriverPath, overwrite_csv=False
                 print(f"\n\tFailure!")
                 continue
         
+        # if an error occurs
         except (ElementClickInterceptedException, StaleElementReferenceException, NoSuchElementException,
             SessionNotCreatedException, ElementNotVisibleException, TimeoutException,
             ElementNotInteractableException) as e:
@@ -453,7 +612,7 @@ def ScrapeData(permits, relevant_inspections, webDriverPath, overwrite_csv=False
         else:
             CloseFiles([fileResult])
                 
-                
+
                 
 def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20, numRetryPermit=5): 
     
@@ -475,11 +634,15 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
     timesUnused = {}
     for per in unused:
         timesUnused[per] = 1
-                
+       
+    # variable to keep track of start of web scraping permits
     start = True
+    
+    # initialize variable to store iteration
+    it = 1
 
     # while there are still unused permits
-    while (len(timesUnused) > 0):
+    while ((len(timesUnused) > 0) & (len(unused) > 0) & (it < numRetryPermit)):
         
         # on start, let user choose whether or not to overwrite the csv
         if (start == True):
@@ -511,6 +674,9 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
         # remove permits from timesUnused dict
         for per in listRemove.intersection(timesUnused.keys()):
             timesUnused.pop(per)
+            
+        # increase iteration
+        it = it + 1
                 
                 
                 
@@ -533,5 +699,5 @@ webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
 # edge case: 20210519111
 
 # scrape data
-permit_use = permit_list[0:120]
-GetData(permit_use, relevant_inspections, webDriverPath, filenameResult="Test", keepRawInspectionStatus=False, overwrite_csv=True)
+permit_use = permit_list[120:121]
+# GetData(permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=False)
