@@ -705,7 +705,4 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
         # increase iteration
         it = it + 1
 
-        log = open(filenameResult, "r")
-        for line in log:
-            print(line)
                 
