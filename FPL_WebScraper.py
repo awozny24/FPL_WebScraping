@@ -168,7 +168,7 @@ def GetInspectionStatus(status, inspections, permit_number, relevant_inspections
     statusPanda = pd.DataFrame(data)
 
     # determine status of permit
-    passed = statusPanda["status"] == "Pass"
+    passed = (statusPanda["status"] == "Pass") | (statusPanda["status"].str.contains("Approved") == True)
 
     # begin row to write in csv with permit number
     row = [permit_number]
