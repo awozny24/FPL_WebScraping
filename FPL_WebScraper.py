@@ -28,7 +28,7 @@ permit_list=data["PermitNumber"].to_list() #displays all permits
 length=len(data.columns)
 
 # path to webdriver
-webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
+webDriverPath = "C:\webdrivers\chromedriver.exe"
 
 
 #### Helper Functions
@@ -168,8 +168,7 @@ def GetInspectionStatus(status, inspections, permit_number, relevant_inspections
     statusPanda = pd.DataFrame(data)
 
     # determine status of permit
-    passed = (statusPanda["status"] == "Pass") | (statusPanda["status"].str.contains("Approved") == True)
-
+    passed = (statusPanda["status"] == "Pass") | (statusPanda["status"] == "Approved as Noted")
     # begin row to write in csv with permit number
     row = [permit_number]
 
@@ -662,6 +661,9 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
     timesUnused = {}
     for per in unused:
         timesUnused[per] = 1
+
+    # list to store permits that failed
+    failures = []
        
     # variable to keep track of start of web scraping permits
     start = True
@@ -693,7 +695,7 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
             if ((per in unused) & (timesUnused[per] < numRetryPermit)):
                 timesUnused[per] = timesUnused[per] + 1
                 
-            # if the permit search is successful or has failed 5 times to search, 
+            # if the permit search is successful or has failed numRetryPermit times to search, 
             # remove it from the unused dictionary 
             else: 
                 listRemove.add(per)
@@ -705,4 +707,32 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
         # increase iteration
         it = it + 1
 
-                
+    
+    # get all the failed permits (these are the unused ones at the moment)
+    unused = GetUnusedPermits(filenameResult, permit_use)
+
+     # open files 
+    if (keepRawInspectionStatus):
+        # open files and initialize writers; use raw data file
+        [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=overwrite_csv)
+        
+        # write failed permit to file
+        for per in unused:
+            writerResult.writerow([per, "Failed"])
+            writerSuccess.writerow([per] + ['N' for rp in relevant_permits])
+        
+        # close files
+        fileResult.close(); fileSuccess.close();
+        
+    else:
+        # open files and initialize writers; don't use raw data file
+        [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=overwrite_csv)
+        
+        # write failed permit to file
+        for per in unused:
+            writerResult.writerow([per, "Failed"])
+
+        # close files
+        fileResult.close();
+
+               
