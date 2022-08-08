@@ -714,7 +714,7 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
      # open files 
     if (keepRawInspectionStatus):
         # open files and initialize writers; use raw data file
-        [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=overwrite_csv)
+        [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=False)
         
         # write failed permit to file
         for per in unused:
@@ -726,7 +726,7 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
         
     else:
         # open files and initialize writers; don't use raw data file
-        [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=overwrite_csv)
+        [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=False)
         
         # write failed permit to file
         for per in unused:
