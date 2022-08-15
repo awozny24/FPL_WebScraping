@@ -26,12 +26,21 @@ webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
 
 # scrape data
 permit_use = [20210831265, 2021083126, 1234, 20210519111]
-FPL_WebScraper.GetData(permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=True, numRetryPermit=2)
+FPL_WebScraper.GetData(permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=True, numRetryPermit=1)
 
 
 # print the list of permits that were unsuccessfully scraped
 # print(FPL_WebScraper.GetUnusedPermits("PermitStatus.csv", permit_use))
 # start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'    
 
-
+# df = pd.DataFrame(index=[1, 2, 3], columns=['A', 'B', 'C'])
+# # permits_panda["Most Recent"].loc[permits_panda["ID"] == per]
+# df.iloc[0, 2] = 1
+# df.iloc[1, 1] = 2
+# row = df['C'].loc[df['B'] == 2].index[0]
+# print(row)
+# col = df.columns.get_loc('C')
+# print(col)
+# df.iloc[row-1, col] = 5
+# print(df)
 

@@ -460,171 +460,163 @@ def Recursive(function, browser, permit_number, counter, quit_count, extraVars=N
     return True
 
 
+def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20, numRetryPermit=5):
+
+    # if the number of tries has been exceeded, return None for error
+    if (numRetry > numRetryPermit):
+        return None, None
+
+    try:
+        # number of times to try to access web element for a certain permit
+        quit_count=20
+
+        # search for the permit; continue if successful
+        if (SearchForPermit(browser, permit_number, quit_count)):
+
+            # go to inspection table; continue if successful, otherwise move to next permit
+            if (GoToInspections(browser, permit_number, quit_count)):
+                pass
+
+            else:
+                # print failure message
+                print("\n\tFailure!")
+
+                # increase try iteration
+                numRetry = numRetry + 1
+
+                # recursive function call; 
+                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+                
+                
+            # get number of records in the inspection table
+            numRecords = GetNumRecords(browser)
+            
+            # if numRecords==-1, the inspection table did not load and couldn't be read
+            # try again
+            if (numRecords == -1):
+                # increase try iteration
+                numRetry = numRetry + 1
+
+                # recursive function call; 
+                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+                
+
+            # get number of pages
+            numPages = int(numRecords/5) + 1
+
+            # store each completed inspection and its status
+            status = list()
+            inspections = list()
+
+            # relative page number in html
+            p = 1
+
+            # initialize the success of turning the page and getting info as a success
+            pageTurnSuccess = True
+            getInfoSuccess = True
+            
+            # for each page
+            while ((p < numPages+1) & (p < 11) & (pageTurnSuccess) & (getInfoSuccess)):
+                # get the completed inspections from the inspection table on each page
+                getInfoSuccess = GetInspectionInfo(browser, permit_number, quit_count, status, inspections)
+
+                # set delay for waiting for turning the page
+                delay = 1.5
+
+                # set to True, if there are no pages to turn, then success technically
+                pageTurnSuccess = True
+
+                # if there are pages to turn, turn the page
+                if ((numRecords > 5) & (p != numPages)):
+                    pageTurnSuccess = TurnPage(browser, permit_number, quit_count, p, delay)
+                    
+                # set p to next page
+                p = p + 1
+                
+                
+            # if the page turn was unsuccessful, try again
+            if (pageTurnSuccess == False):
+                getInfoSuccess = False
+                browser.get(start_url)
+                print(f"\n\tFailure!")
+                
+                # increase try iteration
+                numRetry = numRetry + 1
+
+                # recursive function call; 
+                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+                
+            
+            # if getting info was unsuccessful, try again
+            if (getInfoSuccess == False):
+                getTurnSuccess = False
+                browser.get(start_url)
+                print(f"\n\tFailure!")
+                
+                # increase try iteration
+                numRetry = numRetry + 1
+
+                # recursive function call; 
+                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+                
+
+            # if the permit information was successfully retrieved
+            if ((pageTurnSuccess) & (getInfoSuccess)):
+
+                # get the status of the relevant inspections
+                row = GetInspectionStatus(status, inspections, permit_number, relevant_inspections)
+
+                # get the most recent inspection
+                mostRecentInspection = GetMostRecentInspection(row, permit_number, relevant_inspections)
+
+                print(f"\n\tSuccess!")
+
+                # return the desired information
+                return mostRecentInspection[1], row
+                    
+                
+        
+        # if failed to search, restart at home page and try again
+        else:
+            browser.get(start_url)
+            print(f"\n\tFailure!")
+            
+            # increase try iteration
+            numRetry = numRetry + 1
+
+            # recursive function call; 
+            return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+            
+    
+    # if an error occurs
+    except (ElementClickInterceptedException, StaleElementReferenceException, NoSuchElementException,
+        SessionNotCreatedException, ElementNotVisibleException, TimeoutException,
+        ElementNotInteractableException) as e:
+        # print error message
+        print(f"\n\tPermit Overall Exception {e.__class__.__name__}", end="")
+        print(f"\n\tFailure!")
+
+        # increase try iteration
+        numRetry = numRetry + 1
+
+        # recursive function call; 
+        return ScrapeDataHelper(permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+
+    
+
     
 #### Scrape Data
-def ScrapeData(permits, relevant_inspections, webDriverPath, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20):
+def ScrapeData(browser, permit_number, num_iter, relevant_inspections, webDriverPath, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20, numRetryPermit=5):
     # get start time
     start_time = time.time()
 
-    # make sure permit_list is in list format
-    if type(permits) is not list:
-        permits = [permits]
+    print(f"{num_iter}.) Permit #{permit_number}", end="")
 
-    # open files 
-    if (keepRawInspectionStatus):
-        # open files and initialize writers; use raw data file
-        [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=False)
-        fileResult.close(); fileSuccess.close();
-    else:
-        # open files and initialize writers; don't use raw data file
-        [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=False)
-        fileResult.close();
+    # current iteration of trying
+    numRetry = 1
 
-    # go to start url
-    start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'    
-
-    # initialize browser
-    browser = InitializeBrowser(start_url, webDriverPath)
-
-    success = True
-
-    # for each permit
-    for numIter, permit_number in enumerate(permits):
-        
-        print(f"{numIter}.) Permit #{permit_number}", end="")
-        
-        # open the csv files to write to 
-        if (keepRawInspectionStatus):
-            # open files and initialize writers; use raw data file
-            [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=False)
-        else:
-            # open files and initialize writers; don't use raw data file
-            [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=False)
-        
-        try:
-            # number of times to try to access web element for a certain permit
-            quit_count=20
-
-            # search for the permit; continue if successful
-            if (SearchForPermit(browser, permit_number, quit_count)):
-
-                # go to inspection table; continue if successful, otherwise move to next permit
-                if (GoToInspections(browser, permit_number, quit_count)):
-                    pass
-                else:
-                    # close the files for writing
-                    if (keepRawInspectionStatus):
-                        CloseFiles([fileResult, fileSuccess])
-                    else:
-                        CloseFiles([fileResult])
-                    
-                    # print failure message
-                    print("\n\tFailure!")
-                    
-                    # move to next loop
-                    continue
-                    
-                # get number of records in the inspection table
-                numRecords = GetNumRecords(browser)
-                
-                # if numRecords==-1, the inspection table did not load and couldn't be read
-                if (numRecords == -1):
-                    # move to the next permit
-                    continue;
-
-                # get number of pages
-                numPages = int(numRecords/5) + 1
-
-                # store each completed inspection and its status
-                status = list()
-                inspections = list()
-
-                # relative page number in html
-                p = 1
-
-                # initialize the success of turning the page and getting info as a success
-                pageTurnSuccess = True
-                getInfoSuccess = True
-                
-                # for each page
-                while ((p < numPages+1) & (p < 11) & (pageTurnSuccess) & (getInfoSuccess)):
-                    # get the completed inspections from the inspection table on each page
-                    getInfoSuccess = GetInspectionInfo(browser, permit_number, quit_count, status, inspections)
-
-                    # set delay for waiting for turning the page
-                    delay = 1.5
-
-                    # set to True, if there are no pages to turn, then success technically
-                    pageTurnSuccess = True
-
-                    # if there are pages to turn, turn the page
-                    if ((numRecords > 5) & (p != numPages)):
-                        pageTurnSuccess = TurnPage(browser, permit_number, quit_count, p, delay)
-                       
-                    # set p to next page
-                    p = p + 1
-                    
-                   
-                # move to next permit, if the page turn was unsuccessful
-                if (pageTurnSuccess == False):
-                    getInfoSuccess = False
-                    browser.get(start_url)
-                    print(f"\n\tFailure!")
-                    continue
-                
-                # move to next permit, if getting info was unsuccessful
-                if (getInfoSuccess == False):
-                    getTurnSuccess = False
-                    browser.get(start_url)
-                    print(f"\n\tFailure!")
-                    continue
-                    
-
-                # if the permit information was successfully retrieved
-                if ((pageTurnSuccess) & (getInfoSuccess)):
-
-                    # get the status of the relevant inspections
-                    row = GetInspectionStatus(status, inspections, permit_number, relevant_inspections)
-
-                    # get the most recent inspection
-                    mostRecentInspection = GetMostRecentInspection(row, permit_number, relevant_inspections)
-
-                    # write to the csv files
-                    writerResult.writerow(mostRecentInspection)
-
-                    if (keepRawInspectionStatus):
-                        writerSuccess.writerow(row)
-                        
-                    print(f"\n\tSuccess!")
-            
-            # if failed to search, restart at home page and move to next iteration
-            else:
-                browser.get(start_url)
-                print(f"\n\tFailure!")
-                continue
-        
-        # if an error occurs
-        except (ElementClickInterceptedException, StaleElementReferenceException, NoSuchElementException,
-            SessionNotCreatedException, ElementNotVisibleException, TimeoutException,
-            ElementNotInteractableException) as e:
-            # print error message
-            print(f"\n\tPermit Overall Exception {e.__class__.__name__}", end="")
-            print(f"\n\tFailure!")
-                        
-            # close the files for writing
-            if (keepRawInspectionStatus):
-                CloseFiles([fileResult, fileSuccess])
-            else:
-                CloseFiles([fileResult])
-        
-            # move to next iteration
-            continue
-            
-        # close the files for writing
-        if (keepRawInspectionStatus):
-            CloseFiles([fileResult, fileSuccess])
-        else:
-            CloseFiles([fileResult])
+    return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+    
                 
 
 # Main function to call
@@ -637,102 +629,61 @@ def ScrapeData(permits, relevant_inspections, webDriverPath, overwrite_csv=False
 # numTryClick: specifies how many times that the program should try to perform a function on a web page before quitting
 # numRetryPermit: specifies how many times to retry searching for a permit if failure occurred during the intial scraping
 def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=False, numTryClick=20, numRetryPermit=5): 
-    
-    # open files 
-    if (keepRawInspectionStatus):
-        # open files and initialize writers; use raw data file
-        [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=overwrite_csv)
-        fileResult.close(); fileSuccess.close();
-    else:
-        # open files and initialize writers; don't use raw data file
-        [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=overwrite_csv)
-        fileResult.close();
 
-    
-    
+    # go to start url
+    start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'    
+
+    # initialize browser
+    browser = InitializeBrowser(start_url, webDriverPath)
+
     # make sure specified filename contains .csv; otherwise add it
     if ".csv" not in filenameResult:
         filenameResult = filenameResult + ".csv"
 
-    # get unused permits
-    unused = GetUnusedPermits(filenameResult, permit_use)
+    # if the csv will be overwritten
+    if overwrite_csv:
+        # create empty pandas dataframe 
+        permits_panda = pd.DataFrame({"ID":permit_use, "Most Recent":"Error"})
+        for insp in relevant_inspections:
+            permits_panda[insp] = "Error"
 
-    # create dict with keys as unused permits and value as number of times tried
-    timesUnused = {}
-    for per in unused:
-        timesUnused[per] = 1
-
-    # list to store permits that failed
-    failures = []
-       
-    # variable to keep track of start of web scraping permits
-    start = True
-    
-    # initialize variable to store iteration
-    it = 1
-
-    # while there are still unused permits
-    while ((len(timesUnused) > 0) & (len(unused) > 0) & (it <= numRetryPermit)):
-
-        # on start, let user choose whether or not to overwrite the csv
-        if (start == True):
-            # try getting data for each permit
-            ScrapeData(unused, relevant_inspections, webDriverPath, overwrite_csv, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick)
-            start = False
-        # if not on start, then do not overwrite
-        else:
-            ScrapeData(unused, relevant_inspections, webDriverPath, False, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick)
-
-        # get the unused/unsuccessful permits to try to search for again
-        unused = GetUnusedPermits(filenameResult, permit_use)
-
-        # get rid of used permits from unused dictionary
-        for per in timesUnused.keys():
-            # get list of permits to remove from timesUnused
-            listRemove = set()
-            
-            # add to times tried if the permit is still unused or has not yet failed 5 times to search
-            if ((per in unused) & (timesUnused[per] < numRetryPermit)):
-                timesUnused[per] = timesUnused[per] + 1
-                
-            # if the permit search is successful or has failed numRetryPermit times to search, 
-            # remove it from the unused dictionary 
-            else: 
-                listRemove.add(per)
-                
-        # remove permits from timesUnused dict
-        for per in listRemove.intersection(timesUnused.keys()):
-            timesUnused.pop(per)
-            
-        # increase iteration
-        it = it + 1
-
-    
-    # get all the failed permits (these are the unused ones at the moment)
-    unused = GetUnusedPermits(filenameResult, permit_use)
-
-     # open files 
-    if (keepRawInspectionStatus):
-        # open files and initialize writers; use raw data file
-        [fileResult, fileSuccess], [writerResult, writerSuccess] = OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=False)
-        
-        # write failed permit to file
-        for per in unused:
-            writerResult.writerow([per, "Failed"])
-            writerSuccess.writerow([per] + ['N' for rp in relevant_permits])
-        
-        # close files
-        fileResult.close(); fileSuccess.close();
-        
+    # if reading from an existing csv
     else:
-        # open files and initialize writers; don't use raw data file
-        [fileResult], [writerResult] = OpenFiles(filenameResult=filenameResult, overwrite_csv=False)
-        
-        # write failed permit to file
-        for per in unused:
-            writerResult.writerow([per, "Failed"])
+        # read from csv
+        permits_panda = pd.read_csv(filenameResult)  
 
-        # close files
-        fileResult.close();
+        # if the csv is empty
+        if (permits_panda.shape[0] == 0):
+            # create empty pandas dataframe 
+            permits_panda = pd.DataFrame({"ID":permit_use, "Most Recent":"Error"})
+            for insp in relevant_inspections:
+                permits_panda[insp] = "Error"
+
+
+    # get all the permit id's that resulted in error
+    scrape_data = permits_panda["ID"].loc[permits_panda["Most Recent"] == "Error"]
+
+    # for each permit to scrape
+    for num_iter, per in enumerate(scrape_data):
+
+        # get the most recent inspection and row of 'Y' or 'N' for inspection completed
+        mostRecentInspection, row = ScrapeData(browser, per, num_iter, relevant_inspections, webDriverPath, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+
+        # if success occurred
+        if (mostRecentInspection != None):
+            # update the pandas dataframe
+            # print(f"Inspection: {mostRecentInspection}")
+            # print(f"Row: {row}")
+            permits_panda.loc[(permits_panda["ID"]==per), "Most Recent"] = mostRecentInspection
+            for n in range(2, len(permits_panda.columns)):
+                permits_panda[permits_panda.columns[n]] = row[n-2]
+
+    # write pandas to csv
+    if (keepRawInspectionStatus):
+        # convert panda to csv
+        permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
+        permits_panda.to_csv("./" + filenameSuccess, index=False)
+    else:
+        permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
 
                
