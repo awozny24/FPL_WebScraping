@@ -650,7 +650,16 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
     # if reading from an existing csv
     else:
         # read from csv
-        permits_panda = pd.read_csv(filenameResult)  
+        old_permits_panda = pd.read_csv(filenameResult)  
+
+        # get new list of permits as a dataframe
+        new_permits_panda = pd.DataFrame({'ID':permit_use})
+
+        # combine panda of old and new permits
+        permits_panda = pd.merge(old_permits_panda, new_permits_panda, how="outer", on="ID")
+
+        # replace NaN values in permits_panda with 'Error'
+        permits_panda["Most Recent"].fillna("Error", inplace=True)
 
         # if the csv is empty
         if (permits_panda.shape[0] == 0):
