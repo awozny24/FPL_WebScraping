@@ -26,8 +26,8 @@ webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
 
 # scrape data
 # permit_use = [20210831265, 2021083126, 1234, 20210519111]
-permit_use = permit_list[52:54]
-FPL_WebScraper.GetData(permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=False, numRetryPermit=1)
+permit_use = permit_list[0:5]
+FPL_WebScraper.GetData(permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=True, numRetryPermit=1)
 
 
 # print the list of permits that were unsuccessfully scraped

@@ -640,6 +640,8 @@ def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False
     if ".csv" not in filenameResult:
         filenameResult = filenameResult + ".csv"
 
+    # TODO if the file does not exist yet
+
     # if the csv will be overwritten
     if overwrite_csv:
         # create empty pandas dataframe 
