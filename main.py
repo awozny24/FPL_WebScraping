@@ -24,10 +24,17 @@ webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
 # "approved" & electric temp service test: 20210831265
 # test failed permit: [2021083126, 1234]
 
+# go to start url
+start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'    
+
+# initialize browser
+browser = FPL_WebScraper.InitializeBrowser(start_url, webDriverPath)
+
 # scrape data
 # permit_use = [20210831265, 2021083126, 1234, 20210519111]
-permit_use = permit_list[0:5]
-FPL_WebScraper.GetData(permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=True, numRetryPermit=1)
+for i in range(1, len(permit_list[0:250])):
+  permit_use = permit_list[0:i]
+  FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=False, numRetryPermit=1)
 
 
 # print the list of permits that were unsuccessfully scraped

@@ -628,13 +628,13 @@ def ScrapeData(browser, permit_number, num_iter, relevant_inspections, webDriver
 # keepRawInspectionStatus: determines whether or not to record the raw data by storing it in filenameSuccess.csv
 # numTryClick: specifies how many times that the program should try to perform a function on a web page before quitting
 # numRetryPermit: specifies how many times to retry searching for a permit if failure occurred during the intial scraping
-def GetData(permit_use, relevant_inspections, webDriverPath, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=False, numTryClick=20, numRetryPermit=5): 
+def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=False, numTryClick=20, numRetryPermit=5): 
 
-    # go to start url
-    start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'    
+    # # go to start url
+    # start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'    
 
-    # initialize browser
-    browser = InitializeBrowser(start_url, webDriverPath)
+    # # initialize browser
+    # browser = InitializeBrowser(start_url, webDriverPath)
 
     # make sure specified filename contains .csv; otherwise add it
     if ".csv" not in filenameResult:
