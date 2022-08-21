@@ -599,8 +599,8 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
         # increase try iteration
         numRetry = numRetry + 1
 
-        # recursive function call; 
-        return ScrapeDataHelper(permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+        # recursive function call
+        return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
 
     
 

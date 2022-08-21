@@ -32,7 +32,7 @@ browser = FPL_WebScraper.InitializeBrowser(start_url, webDriverPath)
 
 # scrape data
 # permit_use = [20210831265, 2021083126, 1234, 20210519111]
-for i in range(1, len(permit_list[0:250])):
+for i in range(1, len(permit_list[0:253])):
   permit_use = permit_list[0:i]
   FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=False, numRetryPermit=1)
 
