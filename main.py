@@ -5,7 +5,8 @@ import FPL_WebScraper
 import pandas as pd
 
 # read data
-data=pd.read_csv("./sampledata-permits.csv")
+# data=pd.read_csv("./sampledata-permits.csv")
+data = pd.read_csv("./SAMPLE DATA.csv", names=["PermitNumber", "Name", "Num", "Loc"])
 
 # list of permits
 data_dict=data.to_dict()
@@ -32,10 +33,11 @@ browser = FPL_WebScraper.InitializeBrowser(start_url, webDriverPath)
 
 # scrape data
 # permit_use = [20210831265, 2021083126, 1234, 20210519111]
-for i in range(1, len(permit_list[0:253])):
-  permit_use = permit_list[0:i]
-  FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=False, numRetryPermit=1)
-
+permit_use = permit_list[0::]
+FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=False, numRetryPermit=1)
+#TODO Line 206  change "None" to "Fail(ure)"
+#TODO set permit number as index so not duplicated
+#TODO FIX appending so that permits are not added on
 
 # print the list of permits that were unsuccessfully scraped
 # print(FPL_WebScraper.GetUnusedPermits("PermitStatus.csv", permit_use))

@@ -462,6 +462,9 @@ def Recursive(function, browser, permit_number, counter, quit_count, extraVars=N
 
 def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20, numRetryPermit=5):
 
+    # go to start url
+    start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'   
+
     # if the number of tries has been exceeded, return None for error
     if (numRetry > numRetryPermit):
         return None, None
@@ -630,8 +633,8 @@ def ScrapeData(browser, permit_number, num_iter, relevant_inspections, webDriver
 # numRetryPermit: specifies how many times to retry searching for a permit if failure occurred during the intial scraping
 def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=False, numTryClick=20, numRetryPermit=5): 
 
-    # # go to start url
-    # start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'    
+    # go to start url
+    start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'    
 
     # # initialize browser
     # browser = InitializeBrowser(start_url, webDriverPath)
@@ -689,12 +692,12 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
             for n in range(2, len(permits_panda.columns)):
                 permits_panda[permits_panda.columns[n]] = row[n-2]
 
-    # write pandas to csv
-    if (keepRawInspectionStatus):
-        # convert panda to csv
-        permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
-        permits_panda.to_csv("./" + filenameSuccess, index=False)
-    else:
-        permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
+        # write pandas to csv
+        if (keepRawInspectionStatus):
+            # convert panda to csv
+            permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
+            permits_panda.to_csv("./" + filenameSuccess, index=False)
+        else:
+            permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
 
                
