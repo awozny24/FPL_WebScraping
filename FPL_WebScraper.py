@@ -647,6 +647,12 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
 
     # if the csv will be overwritten
     if overwrite_csv:
+        # overwrite files
+        if keepRawInspectionStatus:
+            OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=True)
+        else:
+            OpenFiles(filenameResult=filenameResult, filenameSuccess=None, overwrite_csv=True)
+
         # create empty pandas dataframe 
         permits_panda = pd.DataFrame({"ID":permit_use, "Most Recent":"Error"})
         for insp in relevant_inspections:
@@ -658,11 +664,11 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
         old_permits_panda = pd.read_csv(filenameResult)  
 
         # get new list of permits as a dataframe
-        new_permits_panda = pd.DataFrame({'ID':permit_use})
+        new_permits_panda = pd.DataFrame({"ID":permit_use})
 
         # combine panda of old and new permits
-        permits_panda = pd.merge(old_permits_panda, new_permits_panda, how="outer", on="ID")
-
+        permits_panda = pd.merge(old_permits_panda, new_permits_panda, how="outer")
+  
         # replace NaN values in permits_panda with 'Error'
         permits_panda["Most Recent"].fillna("Error", inplace=True)
 
@@ -673,12 +679,20 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
             for insp in relevant_inspections:
                 permits_panda[insp] = "Error"
 
-
     # get all the permit id's that resulted in error
-    scrape_data = permits_panda["ID"].loc[permits_panda["Most Recent"] == "Error"]
+    scrape_data = permits_panda["ID"].loc[permits_panda["Most Recent"] == "Error"].to_list()
+
+    # create empty pandas dataframe 
+    column_names = ["ID", "Most Recent"]
+    column_names_append = [insp for insp in relevant_inspections]
+    column_names.extend(column_names_append)
+    permits_panda = pd.DataFrame(columns=column_names)
 
     # for each permit to scrape
     for num_iter, per in enumerate(scrape_data):
+        # 
+        if per in permits_panda.ID.values:
+            continue
 
         # get the most recent inspection and row of 'Y' or 'N' for inspection completed
         mostRecentInspection, row = ScrapeData(browser, per, num_iter, relevant_inspections, webDriverPath, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
@@ -688,7 +702,10 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
             # update the pandas dataframe
             # print(f"Inspection: {mostRecentInspection}")
             # print(f"Row: {row}")
-            permits_panda.loc[(permits_panda["ID"]==per), "Most Recent"] = mostRecentInspection
+            # permits_panda.loc[(permits_panda["ID"]==per), "Most Recent"] = mostRecentInspection
+            results = [per, mostRecentInspection]
+            results.extend(row[1::])
+            permits_panda.loc[len(permits_panda.index)] = results
             for n in range(2, len(permits_panda.columns)):
                 permits_panda[permits_panda.columns[n]] = row[n-2]
 
