@@ -36,8 +36,6 @@ browser = FPL_WebScraper.InitializeBrowser(start_url, webDriverPath)
 permit_use = permit_list[0:2]
 FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=True, numRetryPermit=1)
 #TODO Line 206  change "None" to "Fail(ure)"
-#TODO set permit number as index so not duplicated
-#TODO FIX appending so that permits are not added on
 
 # print the list of permits that were unsuccessfully scraped
 # print(FPL_WebScraper.GetUnusedPermits("PermitStatus.csv", permit_use))
