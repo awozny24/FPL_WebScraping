@@ -16,6 +16,8 @@ import csv
 import time
 from pathlib import Path
 
+from os.path import exists
+
 import pandas as pd
 
 
@@ -643,23 +645,22 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
     if ".csv" not in filenameResult:
         filenameResult = filenameResult + ".csv"
 
-    # TODO if the file does not exist yet
-
     # if the csv will be overwritten
     if overwrite_csv:
-        # overwrite files
-        if keepRawInspectionStatus:
-            OpenFiles(filenameResult=filenameResult, filenameSuccess=filenameSuccess, overwrite_csv=True)
-        else:
-            OpenFiles(filenameResult=filenameResult, filenameSuccess=None, overwrite_csv=True)
+        # overwrite and delete all content of csv
+        OpenFiles(filenameResult=filenameResult, filenameSuccess=None, overwrite_csv=True)
 
         # create empty pandas dataframe 
         permits_panda = pd.DataFrame({"ID":permit_use, "Most Recent":"Error"})
-        for insp in relevant_inspections:
-            permits_panda[insp] = "Error"
+
 
     # if reading from an existing csv
     else:
+        # if the file does not yet exist
+        if not exists(filenameResult):
+            # create a new file
+            OpenFiles(filenameResult=filenameResult, filenameSuccess=None, overwrite_csv=True)
+
         # read from csv
         old_permits_panda = pd.read_csv(filenameResult)  
 
@@ -676,45 +677,26 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
         if (permits_panda.shape[0] == 0):
             # create empty pandas dataframe 
             permits_panda = pd.DataFrame({"ID":permit_use, "Most Recent":"Error"})
-            for insp in relevant_inspections:
-                permits_panda[insp] = "Error"
 
     # get all the permit id's that resulted in error
     scrape_data = permits_panda["ID"].loc[permits_panda["Most Recent"] == "Error"].to_list()
 
     # create empty pandas dataframe 
     column_names = ["ID", "Most Recent"]
-    column_names_append = [insp for insp in relevant_inspections]
-    column_names.extend(column_names_append)
-    permits_panda = pd.DataFrame(columns=column_names)
 
     # for each permit to scrape
     for num_iter, per in enumerate(scrape_data):
-        # 
-        if per in permits_panda.ID.values:
-            continue
 
         # get the most recent inspection and row of 'Y' or 'N' for inspection completed
         mostRecentInspection, row = ScrapeData(browser, per, num_iter, relevant_inspections, webDriverPath, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
 
         # if success occurred
         if (mostRecentInspection != None):
-            # update the pandas dataframe
-            # print(f"Inspection: {mostRecentInspection}")
-            # print(f"Row: {row}")
-            # permits_panda.loc[(permits_panda["ID"]==per), "Most Recent"] = mostRecentInspection
             results = [per, mostRecentInspection]
-            results.extend(row[1::])
-            permits_panda.loc[len(permits_panda.index)] = results
-            for n in range(2, len(permits_panda.columns)):
-                permits_panda[permits_panda.columns[n]] = row[n-2]
+            permits_panda.loc[(permits_panda["ID"]==per), "Most Recent"] = mostRecentInspection 
 
         # write pandas to csv
-        if (keepRawInspectionStatus):
-            # convert panda to csv
-            permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
-            permits_panda.to_csv("./" + filenameSuccess, index=False)
-        else:
-            permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
+        permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
+
 
                
