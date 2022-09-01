@@ -696,7 +696,7 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
             permits_panda.loc[(permits_panda["ID"]==per), "Most Recent"] = mostRecentInspection 
 
         # write pandas to csv
-        permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
+        permits_panda[["ID", "Most Recent"]].iloc[0:num_iter+1].to_csv("./" + filenameResult, index=False)
 
 
                

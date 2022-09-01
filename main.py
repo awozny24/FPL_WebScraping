@@ -34,4 +34,4 @@ browser = FPL_WebScraper.InitializeBrowser(start_url, webDriverPath)
 # scrape data
 # permit_use = [20210831265, 2021083126, 1234, 20210519111]
 permit_use = permit_list[0::]
-FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=True, numRetryPermit=3)
+FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=False, numRetryPermit=3)
