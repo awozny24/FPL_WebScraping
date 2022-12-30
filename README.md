@@ -14,6 +14,8 @@ Open the RunWebScraper.sh file in a text editor and edit the parameters:
 - INPUTFILE - name of the .csv file to read the permit numbers from; this file must either be in the same folder as RunWebScraper.sh or a -relative path can be used
 - OUTPUTFILE - name of the file to output the permit number, most recent inspection, and record status; this file must either be in the same folder as RunWebScraper.sh or a relative path can be used
 
+
+### Running the Web Scraper
 To run the file, open the Command Prompt or Terminal. Navigate to the folder that contains the RunWebScraper.sh file. In the Command Prompt or Terminal window, type:
 
 ./RunWebScraper
