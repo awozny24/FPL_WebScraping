@@ -3,10 +3,25 @@
 # import file with relevant functions
 import FPL_WebScraper
 import pandas as pd
+from sys import platform
+import sys
 
-# read data
-# data=pd.read_csv("./sampledata-permits.csv")
-data = pd.read_csv("./SAMPLE DATA.csv", names=["PermitNumber", "Name", "Num", "Loc"])
+# path to webdriver
+webDriverPath = sys.argv[1]
+
+# read data (account for spaces)
+inputFile = ""
+ind = 2
+while "csv" not in inputFile:
+  inputFile += sys.argv[ind]
+  ind += 1
+  inputFile += ' '
+inputFile = inputFile[:-1]
+
+data = pd.read_csv(inputFile, names=["PermitNumber", "Name", "Num", "Loc"])
+
+# output file name
+outputFileName = sys.argv[ind]
 
 # list of permits
 data_dict=data.to_dict()
@@ -17,9 +32,6 @@ length=len(data.columns)
 relevant_inspections = ["Footer", "Slab", "Wall Sheathing", "Roof Sheathing", 
                         "Dry In", "Electric Rough", "Framing", "Insulation",
                         "Electric Temporary Service"]
-
-# path to webdriver
-webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
 
 # edge case: 20210519111
 # "approved" & electric temp service test: 20210831265
@@ -34,4 +46,7 @@ browser = FPL_WebScraper.InitializeBrowser(start_url, webDriverPath)
 # scrape data
 # permit_use = [20210831265, 2021083126, 1234, 20210519111]
 permit_use = permit_list[0::]
-FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, filenameResult="PermitStatus", keepRawInspectionStatus=False, overwrite_csv=False, numRetryPermit=3)
+# permit_use = [20210829720]
+FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, filenameResult=outputFileName, overwrite_csv=True, numRetryPermit=5)
+
+browser.close()
