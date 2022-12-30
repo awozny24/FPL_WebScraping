@@ -5,4 +5,13 @@ WEBDRIVER="/Users/alexanderwozny/Documents/chromedriver"
 INPUTFILE="SAMPLE DATA.csv"
 OUTPUTFILE="PermitStatus.csv"
 
-python3 ./utils/main.py $WEBDRIVER $INPUTFILE $OUTPUTFILE
+OVERWRITE="true"
+while getopts 'a' OPTION; do
+  case "$OPTION" in 
+    a)
+      OVERWRITE="false"
+      ;;
+  esac
+done
+
+python3 ./utils/main.py $WEBDRIVER $INPUTFILE $OUTPUTFILE $OVERWRITE
