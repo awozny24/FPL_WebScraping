@@ -21,18 +21,6 @@ from os.path import exists
 import pandas as pd
 
 
-# read data
-data=pd.read_csv("./sampledata-permits.csv")
-
-# list of permits
-data_dict=data.to_dict()
-permit_list=data["PermitNumber"].to_list() #displays all permits
-length=len(data.columns)
-
-# path to webdriver
-webDriverPath = "C:\webdrivers\chromedriver.exe"
-
-
 #### Helper Functions
 # Initialize Browser
 def InitializeBrowser(start_url, webDriverPath):
@@ -119,6 +107,7 @@ def OpenFiles(filenameResult="PermitStatus", filenameSuccess=None, overwrite_csv
         # add column names
         row = ["ID"]
         row = row + ["Most Recent"]
+        row = row + ["Record Status"]
         writerResult.writerow(row)
         
         if (keepRawInspectionStatus):
@@ -298,7 +287,7 @@ def GoToInspectionsHelper(browser):
     browser.implicitly_wait(1)
 
     # click on "Inspection" option and go to inspections page for given permit id
-    InspDropdownBtn = browser.find_element(by=By.CSS_SELECTOR, value="[title^='Inspections']")
+    InspDropdownBtn = browser.find_element(by=By.XPATH, value="//a[@title='Inspections']")
     InspDropdownBtn.click()
     
     
@@ -424,8 +413,31 @@ def TurnPageHelper(browser, extraVars):
     time.sleep(delay)
 
 
+# This function gets the record status from the page
+def GetRecordStatus(browser, permit_number, quit_count):
+    # initialize try iteration
+    counter = 1
+        
+    # call recursive function to try to click the permit number that was searched
+    result = Recursive(GetRecordStatusHelper, browser, permit_number, counter, quit_count)
+
+    if (result == False) | (result == None) | (result == ""):
+        return None
+    else:
+        return result
 
     
+def GetRecordStatusHelper(browser):
+    
+    # get element of record status
+    statusElement = browser.find_element(by=By.ID, value="ctl00_PlaceHolderMain_lblRecordStatus")
+    
+    # get record status text
+    recordStatusText = statusElement.get_attribute("innerHTML")
+    
+    # at this point, failure has occurred
+    return recordStatusText
+
 
 # Generic recursive formulation for trying to perform a function/action
 def Recursive(function, browser, permit_number, counter, quit_count, extraVars=None):
@@ -469,7 +481,7 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
 
     # if the number of tries has been exceeded, return None for error
     if (numRetry > numRetryPermit):
-        return None, None
+        return None, None, None
 
     try:
         # number of times to try to access web element for a certain permit
@@ -576,8 +588,10 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
 
                 print(f"\n\tSuccess!")
 
+                recordStatus = GetRecordStatus(browser, permit_number, numTryClick)
+
                 # return the desired information
-                return mostRecentInspection[1], row
+                return mostRecentInspection[1], row, recordStatus
                     
                 
         
@@ -650,14 +664,19 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
         # overwrite and delete all content of csv
         OpenFiles(filenameResult=filenameResult, filenameSuccess=None, overwrite_csv=True)
 
+        # create variable here so it can be used later without error
+        old_permits_panda = pd.DataFrame({"ID":[], "Most Recent":[], "Record Status":[]})
+
         # create empty pandas dataframe 
-        permits_panda = pd.DataFrame({"ID":permit_use, "Most Recent":"Error"})
+        permits_panda = pd.DataFrame({"ID":permit_use, "Most Recent":"Error", "Record Status":"Error"})
 
 
     # if reading from an existing csv
     else:
         # if the file does not yet exist
         if not exists(filenameResult):
+            print(f"Creating file for writing: '{filenameResult}'\n")
+
             # create a new file
             OpenFiles(filenameResult=filenameResult, filenameSuccess=None, overwrite_csv=True)
 
@@ -668,35 +687,40 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
         new_permits_panda = pd.DataFrame({"ID":permit_use})
 
         # combine panda of old and new permits
-        permits_panda = pd.merge(old_permits_panda, new_permits_panda, how="outer")
+        permits_panda = pd.merge(new_permits_panda, old_permits_panda, how="outer")
   
         # replace NaN values in permits_panda with 'Error'
         permits_panda["Most Recent"].fillna("Error", inplace=True)
+        permits_panda["Record Status"].fillna("Error", inplace=True)
 
         # if the csv is empty
         if (permits_panda.shape[0] == 0):
             # create empty pandas dataframe 
-            permits_panda = pd.DataFrame({"ID":permit_use, "Most Recent":"Error"})
+            permits_panda = pd.DataFrame({"ID":permit_use, "Most Recent":"Error", "Record Status":"Error"})
 
     # get all the permit id's that resulted in error
-    scrape_data = permits_panda["ID"].loc[permits_panda["Most Recent"] == "Error"].to_list()
+    scrape_data = permits_panda["ID"].loc[(permits_panda["Most Recent"] == "Error") | (permits_panda["Record Status"] == "Error")].to_list()
 
     # create empty pandas dataframe 
-    column_names = ["ID", "Most Recent"]
+    column_names = ["ID", "Most Recent", "Record Status"]
 
     # for each permit to scrape
     for num_iter, per in enumerate(scrape_data):
 
         # get the most recent inspection and row of 'Y' or 'N' for inspection completed
-        mostRecentInspection, row = ScrapeData(browser, per, num_iter, relevant_inspections, webDriverPath, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+        mostRecentInspection, row, recordStatus = ScrapeData(browser, per, num_iter, relevant_inspections, webDriverPath, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
 
         # if success occurred
         if (mostRecentInspection != None):
             results = [per, mostRecentInspection]
             permits_panda.loc[(permits_panda["ID"]==per), "Most Recent"] = mostRecentInspection 
+            permits_panda.loc[(permits_panda["ID"]==per), "Record Status"] = recordStatus 
+        elif ((recordStatus == "Expired") | (recordStatus == "Closed")):
+            permits_panda.loc[(permits_panda["ID"]==per), "Most Recent"] = mostRecentInspection 
+            permits_panda.loc[(permits_panda["ID"]==per), "Record Status"] = recordStatus
 
         # write pandas to csv
-        permits_panda[["ID", "Most Recent"]].to_csv("./" + filenameResult, index=False)
-
+        permits_panda[["ID", "Most Recent", "Record Status"]].to_csv("./" + filenameResult, index=False)
+        #permits_panda[["ID", "Most Recent", "Record Status"]].iloc[0:num_iter+old_permits_panda.shape[0]+1].to_csv("./" + filenameResult, index=False)
 
                
