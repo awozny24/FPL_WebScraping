@@ -287,7 +287,7 @@ def GoToInspectionsHelper(browser):
     browser.implicitly_wait(1)
 
     # click on "Inspection" option and go to inspections page for given permit id
-    InspDropdownBtn = browser.find_element(by=By.XPATH, value="//a[@title='Inspections']")
+    InspDropdownBtn = browser.find_element(by=By.XPATH, value="//li[.='Inspections']")
     InspDropdownBtn.click()
     
     
