@@ -14,4 +14,8 @@ while getopts 'a' OPTION; do
   esac
 done
 
+# run the program
 python3 ./utils/main.py $WEBDRIVER $INPUTFILE $OUTPUTFILE $OVERWRITE
+
+# run the program again in case it fails, but do not overwrite
+python3 ./utils/main.py $WEBDRIVER $INPUTFILE $OUTPUTFILE "false"

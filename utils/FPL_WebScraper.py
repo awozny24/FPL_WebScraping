@@ -618,6 +618,17 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
         # increase try iteration
         numRetry = numRetry + 1
 
+        # check if the page was a bad gateway page and refresh if it is
+        if browser.find_elements(By.XPATH, "//*[contains(text(), 'Bad Gateway')]"):
+            browser.refresh()
+            print(f"\n\tWaiting for browser to refresh...", end="")
+            try:
+                element = WebDriverWait(browser, 8).until(
+                            EC.presence_of_element_located((By.XPATH, "//li[contains(., 'home')]"))
+                          )
+            except TimeoutException as e:
+                print(f"\n\t{e.__class__.__name__} while waiting for browser to refresh\n", end="")     
+
         # recursive function call
         return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
 
