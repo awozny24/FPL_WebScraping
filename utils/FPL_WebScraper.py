@@ -474,10 +474,7 @@ def Recursive(function, browser, permit_number, counter, quit_count, extraVars=N
     return True
 
 
-def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20, numRetryPermit=5):
-
-    # go to start url
-    start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'   
+def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20, numRetryPermit=5, start_url='https://aca-prod.accela.com/BOCC/Default.aspx'):
 
     # if the number of tries has been exceeded, return None for error
     if (numRetry > numRetryPermit):
@@ -502,7 +499,7 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
                 numRetry = numRetry + 1
 
                 # recursive function call; 
-                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit, start_url)
                 
                 
             # get number of records in the inspection table
@@ -515,7 +512,7 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
                 numRetry = numRetry + 1
 
                 # recursive function call; 
-                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit, start_url)
                 
 
             # get number of pages
@@ -561,7 +558,7 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
                 numRetry = numRetry + 1
 
                 # recursive function call; 
-                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit, start_url)
                 
             
             # if getting info was unsuccessful, try again
@@ -574,7 +571,7 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
                 numRetry = numRetry + 1
 
                 # recursive function call; 
-                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+                return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit, start_url)
                 
 
             # if the permit information was successfully retrieved
@@ -604,7 +601,7 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
             numRetry = numRetry + 1
 
             # recursive function call; 
-            return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+            return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit, start_url)
             
     
     # if an error occurs
@@ -630,13 +627,14 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
                 print(f"\n\t{e.__class__.__name__} while waiting for browser to refresh\n", end="")     
 
         # recursive function call
-        return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+        return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit, start_url)
 
     
 
     
 #### Scrape Data
-def ScrapeData(browser, permit_number, num_iter, relevant_inspections, webDriverPath, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20, numRetryPermit=5):
+def ScrapeData(browser, permit_number, num_iter, relevant_inspections, webDriverPath, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=True, numTryClick=20, numRetryPermit=5, start_url="https://aca-prod.accela.com/BOCC/Default.aspx"):
+
     # get start time
     start_time = time.time()
 
@@ -645,7 +643,7 @@ def ScrapeData(browser, permit_number, num_iter, relevant_inspections, webDriver
     # current iteration of trying
     numRetry = 1
 
-    return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+    return ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath, numRetry, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit, start_url)
     
                 
 
@@ -658,10 +656,7 @@ def ScrapeData(browser, permit_number, num_iter, relevant_inspections, webDriver
 # keepRawInspectionStatus: determines whether or not to record the raw data by storing it in filenameSuccess.csv
 # numTryClick: specifies how many times that the program should try to perform a function on a web page before quitting
 # numRetryPermit: specifies how many times to retry searching for a permit if failure occurred during the intial scraping
-def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=False, numTryClick=20, numRetryPermit=5): 
-
-    # go to start url
-    start_url = 'https://secureapps.charlottecountyfl.gov/CitizenAccess/Welcome.aspx?TabName=Home&TabList=Home'    
+def GetData(browser, permit_use, relevant_inspections, webDriverPath, start_url, overwrite_csv=False, filenameResult="PermitStatus", filenameSuccess="GetStatusSuccess", keepRawInspectionStatus=False, numTryClick=20, numRetryPermit=5):    
 
     # # initialize browser
     # browser = InitializeBrowser(start_url, webDriverPath)
@@ -719,7 +714,7 @@ def GetData(browser, permit_use, relevant_inspections, webDriverPath, overwrite_
     for num_iter, per in enumerate(scrape_data):
 
         # get the most recent inspection and row of 'Y' or 'N' for inspection completed
-        mostRecentInspection, row, recordStatus = ScrapeData(browser, per, num_iter, relevant_inspections, webDriverPath, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit)
+        mostRecentInspection, row, recordStatus = ScrapeData(browser, per, num_iter, relevant_inspections, webDriverPath, filenameResult, filenameSuccess, keepRawInspectionStatus, numTryClick, numRetryPermit, start_url)
 
         # if success occurred
         if (mostRecentInspection != None):

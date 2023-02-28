@@ -54,6 +54,6 @@ browser = FPL_WebScraper.InitializeBrowser(start_url, webDriverPath)
 # permit_use = [20210831265, 2021083126, 1234, 20210519111]
 permit_use = permit_list[0::]
 # permit_use = [20210829720]
-FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, filenameResult=outputFileName, overwrite_csv=overwriteFile, numRetryPermit=5)
+FPL_WebScraper.GetData(browser, permit_use, relevant_inspections, webDriverPath, start_url, filenameResult=outputFileName, overwrite_csv=overwriteFile, numRetryPermit=5)
 
 browser.close()
