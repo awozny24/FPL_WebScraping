@@ -1,34 +1,33 @@
 #!/bin/usr/python3
 
+######################################################
+# USER PARAMETERS #
+# Only change these parameters.
+#######################################################
+webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
+# webDriverPath ="C:\webdrivers\chromedriver.exe"
+inputFile = "SAMPLE DATA.csv"
+outputFileName = "PermitStatus.csv"
+overwriteFile = True
+########################################################
+
 # import file with relevant functions
 import FPL_WebScraper
 import pandas as pd
 from sys import platform
 import sys
 
-# path to webdriver
-webDriverPath = sys.argv[1]
-
-# read data (account for spaces)
-inputFile = ""
-ind = 2
-while "csv" not in inputFile:
-  inputFile += sys.argv[ind]
-  ind += 1
-  inputFile += ' '
-inputFile = inputFile[:-1]
-
+# read data from inputFile csv
 data = pd.read_csv(inputFile, names=["PermitNumber", "Name", "Num", "Loc"])
 
-# output file name
-outputFileName = sys.argv[ind]
-
 # whether or not to overwrite output file and start from scratch
-overwriteFile = True
-if sys.argv[ind+1] == "true":
-  overwriteFile = True
-else:
-  overwriteFile = False
+# This can be defined above by the user, but if the -o flag is used in the command line, then ovewriteFile is set to True.
+# And if the -a flag (append) is used in the command line, then overwriteFile is set to False
+if len(sys.argv) > 1:
+    if sys.argv[1] == "-o":
+        overwriteFile = True
+    elif sys.argv[1] == "-a":
+        overwrite = False
 
 # list of permits
 data_dict=data.to_dict()
