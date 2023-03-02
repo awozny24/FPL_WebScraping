@@ -24,15 +24,15 @@ ID,Most Recent,Record Status
 20200719738,Electric Temporary Service,C of O Issued
 20200720284,Electric Temporary Service,C of O Issued
 20200721011,Electric Temporary Service,Permit Issued
-20200925541,Error,Error
-20200926060,Error,Error
-20200926944,Error,Error
-20200927105,Error,Error
-20200927926,Error,Error
-20200927927,Error,Error
-20200928035,Error,Error
-20201029625,Error,Error
-20201030530,Error,Error
+20200925541,Electric Temporary Service,Permit Issued
+20200926060,None,Expired
+20200926944,Electric Temporary Service,C of O Issued
+20200927105,Electric Temporary Service,Permit Issued
+20200927926,Electric Temporary Service,Permit Issued
+20200927927,Electric Temporary Service,C of O Issued
+20200928035,Electric Rough,Permit Issued
+20201029625,Dry In,Permit Issued - In Review
+20201030530,None,Expired
 20201132229,Error,Error
 20201132340,Error,Error
 20201134193,Error,Error

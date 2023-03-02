@@ -8,6 +8,7 @@ webDriverPath = "/Users/alexanderwozny/Documents/chromedriver"
 # webDriverPath ="C:\webdrivers\chromedriver.exe"
 inputFile = "SAMPLE DATA.csv"
 outputFileName = "PermitStatus.csv"
+start_url = 'https://aca-prod.accela.com/BOCC/Default.aspx' 
 overwriteFile = True
 ########################################################
 
@@ -42,9 +43,7 @@ relevant_inspections = ["Footer", "Slab", "Wall Sheathing", "Roof Sheathing",
 # edge case: 20210519111
 # "approved" & electric temp service test: 20210831265
 # test failed permit: [2021083126, 1234]
-
-# go to start url
-start_url = 'https://aca-prod.accela.com/BOCC/Default.aspx'    
+   
 
 # initialize browser
 browser = FPL_WebScraper.InitializeBrowser(start_url, webDriverPath)
