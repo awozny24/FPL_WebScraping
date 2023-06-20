@@ -29,6 +29,7 @@ if len(sys.argv) > 1:
         overwriteFile = True
     elif sys.argv[1] == "-a":
         overwrite = False
+        overwriteFile = False
 
 # list of permits
 data_dict=data.to_dict()

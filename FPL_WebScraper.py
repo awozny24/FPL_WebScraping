@@ -337,8 +337,8 @@ def ClickPermitNumberHelper(browser, extraVars):
 def GetInspectionInfo(browser, permit_number, quit_count, status, inspections):
     
     # access the inspection table
-    complete = browser.find_element(by=By.ID, value="divInspectionListCompleted")
-    inspTable = complete.find_elements(by=By.CLASS_NAME, value="ACA_Width45em")
+    complete = browser.find_element(by=By.XPATH, value="(//table[descendant::*[@class='InspectionListRow']])[last()]")
+    inspTable = complete.find_elements(by=By.XPATH, value=".//td[@class='ACA_AlignLeftOrRightTop']")
     
     # get the length of the table
     lengthTable = len(inspTable)
@@ -363,25 +363,21 @@ def GetInspectionInfo(browser, permit_number, quit_count, status, inspections):
 def GetInspectionInfoHelper(browser, extraVars):
     
     # access the inspection table
-    complete = browser.find_element(by=By.ID, value="divInspectionListCompleted")
-    inspTable = complete.find_elements(by=By.CLASS_NAME, value="ACA_Width45em")
+    completed = browser.find_element(by=By.XPATH, value="(//table[descendant::*[@class='InspectionListRow']])[last()]")
+    inspTable = completed.find_elements(by=By.XPATH, value=".//td[@class='ACA_Width45em']")
     
     try: 
         # get the inner html code
         i = extraVars[2]
-        innerHTML = inspTable[i].get_attribute("innerHTML").split('">')
+        statusText = inspTable[i].find_element(by=By.XPATH, value=".//span[1]").get_attribute("innerText")
+        permitText = inspTable[i].find_element(by=By.XPATH, value=".//span[2]").get_attribute("innerText")[:-1]
     except IndexError as e:
         print(f"\n\tIndex Error!", end="")
         return False
 
-    # get the status and permit from the text
-    statusText = innerHTML[1].split('<')[0]
-    permitText = innerHTML[2].split('<')[0].split(' (')[0]
-
     # get the status and permit
     extraVars[0].append(statusText) # extraVars[0] = status
     extraVars[1].append(permitText) # extraVars[1] = inspection
-
 
 
 # Function to turn the page to more of the information from the inspection table
@@ -617,7 +613,8 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
 
         # check if the page was a bad gateway page and refresh if it is
         if browser.find_elements(By.XPATH, "//*[contains(text(), 'Bad Gateway')]"):
-            browser.refresh()
+            # browser.refresh()
+            browser.get(start_url)
             print(f"\n\tWaiting for browser to refresh...", end="")
             try:
                 element = WebDriverWait(browser, 8).until(
