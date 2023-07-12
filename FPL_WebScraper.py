@@ -612,7 +612,8 @@ def ScrapeDataHelper(browser, permit_number, relevant_inspections, webDriverPath
         numRetry = numRetry + 1
 
         # check if the page was a bad gateway page and refresh if it is
-        if browser.find_elements(By.XPATH, "//*[contains(text(), 'Bad Gateway')]"):
+        if browser.find_elements(By.XPATH, "//*[contains(text(), 'Bad Gateway')]") or 
+            browser.find_elements(By.XPATH, "//*[contains(text(), 'Bad gateway')]"):
             # browser.refresh()
             browser.get(start_url)
             print(f"\n\tWaiting for browser to refresh...", end="")
